@@ -23,7 +23,7 @@ import (
 	"os"
 	"strings"
 
-	flag "github.com/spf13/pflag"
+	flag "github.com/joshi4/pflag"
 )
 
 // Command is just that, a command for your application.
