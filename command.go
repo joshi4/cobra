@@ -570,12 +570,12 @@ func (c *Command) DebugFlags() {
 			x.flags.VisitAll(func(f *flag.Flag) {
 				if x.HasPersistentFlags() {
 					if x.persistentFlag(f.Name) == nil {
-						c.Println("  -"+f.Shorthand+",", "--"+f.Name, "["+f.DefValue+"]", "", f.Value, "  [L]")
+						c.Println("--"+f.Name, "["+f.DefValue+"]", "", f.Value, "  [L]")
 					} else {
-						c.Println("  -"+f.Shorthand+",", "--"+f.Name, "["+f.DefValue+"]", "", f.Value, "  [LP]")
+						c.Println("--"+f.Name, "["+f.DefValue+"]", "", f.Value, "  [LP]")
 					}
 				} else {
-					c.Println("  -"+f.Shorthand+",", "--"+f.Name, "["+f.DefValue+"]", "", f.Value, "  [L]")
+					c.Println("--"+f.Name, "["+f.DefValue+"]", "", f.Value, "  [L]")
 				}
 			})
 		}
@@ -583,10 +583,10 @@ func (c *Command) DebugFlags() {
 			x.pflags.VisitAll(func(f *flag.Flag) {
 				if x.HasFlags() {
 					if x.flags.Lookup(f.Name) == nil {
-						c.Println("  -"+f.Shorthand+",", "--"+f.Name, "["+f.DefValue+"]", "", f.Value, "  [P]")
+						c.Println("--"+f.Name, "["+f.DefValue+"]", "", f.Value, "  [P]")
 					}
 				} else {
-					c.Println("  -"+f.Shorthand+",", "--"+f.Name, "["+f.DefValue+"]", "", f.Value, "  [P]")
+					c.Println("--"+f.Name, "["+f.DefValue+"]", "", f.Value, "  [P]")
 				}
 			})
 		}
