@@ -281,7 +281,7 @@ func (c *Command) Find(arrs []string) (*Command, []string, error) {
 	innerfind = func(c *Command, args []string) (*Command, []string) {
 		if len(args) > 0 && c.HasSubCommands() {
 			argsWOflags := stripFlags(args)
-			fmt.Println("Arguments without flags are ", argsWOflags)
+			// fmt.Println("Arguments without flags are ", argsWOflags)
 			if len(argsWOflags) > 0 {
 				matches := make([]*Command, 0)
 				for _, cmd := range c.commands {
@@ -333,7 +333,7 @@ func (c *Command) findAndExecute(args []string) (err error) {
 	if e != nil {
 		return e
 	}
-	fmt.Println("about to execute ", cmd.Name())
+	// fmt.Println("about to execute ", cmd.Name())
 	return cmd.execute(a)
 }
 
@@ -456,9 +456,9 @@ func (c *Command) Execute() (err error) {
 	}
 
 	//reformat the arguments here:
-	fmt.Println("before reformat", args_old)
+	// fmt.Println("before reformat", args_old)
 	args := c.reformatArgs(args_old)
-	fmt.Println("after reformat", args)
+	// fmt.Println("after reformat", args)
 
 	if len(args) == 0 {
 		// Only the executable is called and the root is runnable, run it
@@ -468,11 +468,11 @@ func (c *Command) Execute() (err error) {
 			c.Usage()
 		}
 	} else {
-		fmt.Println("args to findAndExecute are : ", args)
+		// fmt.Println("args to findAndExecute are : ", args)
 		err = c.findAndExecute(args)
 		if err != nil {
 
-			fmt.Println("finished findAndExecute with error = ", err.Error())
+			// fmt.Println("finished findAndExecute with error = ", err.Error())
 		}
 	}
 
