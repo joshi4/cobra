@@ -392,27 +392,20 @@ func (c *Command) reformatArgs(args []string) []string {
 	// if the value is not present, do nothing error will be caught later on.
 
 	_, booleanFlagMap := c.getAllBooleanFlags()
-	flagTerminator := false
-	argNumber := len(args)
-	modifiedArgs := make([]string, argNumber)
-	j := 0
-	for i := 0; i < argNumber; i++ {
 
-		if flagTerminator {
-			modifiedArgs[j] = args[i]
-			j += 1
-			continue
-		}
+	argNumber := len(args)
+	modifiedArgs := make([]string, 0)
+	// j := 0
+	for i := 0; i < argNumber; i++ {
 
 		if strings.HasPrefix(args[i], "-") { // its a flag.
 
 			//edge case when it's a flag terminator
 			if args[i] == "--" {
 				// everything from this point on is copied as is:
-				flagTerminator = true
-				modifiedArgs[j] = args[i]
-				j += 1
-				continue
+
+				modifiedArgs = append(modifiedArgs, args[i:]...)
+				break
 			}
 
 			if !strings.Contains(args[i], "=") { // without an equal to sign in it.
@@ -422,25 +415,25 @@ func (c *Command) reformatArgs(args []string) []string {
 				}
 				if _, ok := booleanFlagMap[args[i][num_minuses:]]; !ok { // its not a boolean flag.
 					if i+1 < argNumber { // there should be a value following it.
-						modifiedArgs[j] = strings.Join(args[i:i+2], "=")
-						j += 1
+						modifiedArgs = append(modifiedArgs, strings.Join(args[i:i+2], "="))
+						// j += 1
 						i = i + 1 // the loop will increment once as well giving us desired i+2
 						continue
 					}
 				} else { // its a boolean flag without a value specified so must be set to true.
-					modifiedArgs[j] = args[i]
-					j += 1
+					modifiedArgs = append(modifiedArgs, args[i])
+					// j += 1
 				}
 			} else { // it's a flag with an equal to sign in it.
-				modifiedArgs[j] = args[i]
-				j += 1
+				modifiedArgs = append(modifiedArgs, args[i])
+				// j += 1
 			}
 
 			continue
 		}
 
-		modifiedArgs[j] = args[i]
-		j += 1
+		modifiedArgs = append(modifiedArgs, args[i])
+		// j += 1
 
 	}
 
