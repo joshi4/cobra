@@ -19,13 +19,12 @@ package cobra
 import (
 	"bytes"
 	"errors"
-	// "flag"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 
-	flag "github.com/joshi4/pflag"
+	flag "github.com/coreos/pflag"
 )
 
 // Command is just that, a command for your application.
