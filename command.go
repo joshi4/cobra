@@ -18,6 +18,8 @@ package cobra
 
 import (
 	"bytes"
+	"errors"
+	// "flag"
 	"fmt"
 	"io"
 	"os"
@@ -280,6 +282,7 @@ func (c *Command) Find(arrs []string) (*Command, []string, error) {
 	innerfind = func(c *Command, args []string) (*Command, []string) {
 		if len(args) > 0 && c.HasSubCommands() {
 			argsWOflags := stripFlags(args)
+			// fmt.Println("Arguments without flags are ", argsWOflags)
 			if len(argsWOflags) > 0 {
 				matches := make([]*Command, 0)
 				for _, cmd := range c.commands {
@@ -331,6 +334,7 @@ func (c *Command) findAndExecute(args []string) (err error) {
 	if e != nil {
 		return e
 	}
+	// fmt.Println("about to execute ", cmd.Name())
 	return cmd.execute(a)
 }
 
@@ -375,6 +379,68 @@ func (c *Command) errorMsgFromParse() string {
 	}
 }
 
+//Takes the command line arguments in all the various forms that
+//etcdctl supports and converts the flags to POSIX style flags
+// without any difference in the long and short flags.
+func (c *Command) reformatArgs(args []string) []string {
+
+	// if args[i] has prefix of - and contains a = there is nothing to do.
+	// if args[i] has no prefix then it's a command and do nothing.
+	// if args[i] has a prefix of - but does not contain a = then
+	// if args[i] is a boolean flag ; do nothing
+	// otherwise join args[i] and args[i+1]
+	// if the value is not present, do nothing error will be caught later on.
+
+	_, booleanFlagMap := c.getAllBooleanFlags()
+
+	argNumber := len(args)
+	modifiedArgs := make([]string, 0)
+	// j := 0
+	for i := 0; i < argNumber; i++ {
+
+		if strings.HasPrefix(args[i], "-") { // its a flag.
+
+			//edge case when it's a flag terminator
+			if args[i] == "--" {
+				// everything from this point on is copied as is:
+
+				modifiedArgs = append(modifiedArgs, args[i:]...)
+				break
+			}
+
+			if !strings.Contains(args[i], "=") { // without an equal to sign in it.
+				num_minuses := 1
+				if len(args[i]) > 1 && args[i][1] == '-' {
+					num_minuses = 2
+				}
+				if _, ok := booleanFlagMap[args[i][num_minuses:]]; !ok { // its not a boolean flag.
+					if i+1 < argNumber { // there should be a value following it.
+						modifiedArgs = append(modifiedArgs, strings.Join(args[i:i+2], "="))
+						// j += 1
+						i = i + 1 // the loop will increment once as well giving us desired i+2
+						continue
+					}
+				} else { // its a boolean flag without a value specified so must be set to true.
+					modifiedArgs = append(modifiedArgs, args[i])
+					// j += 1
+				}
+			} else { // it's a flag with an equal to sign in it.
+				modifiedArgs = append(modifiedArgs, args[i])
+				// j += 1
+			}
+
+			continue
+		}
+
+		modifiedArgs = append(modifiedArgs, args[i])
+		// j += 1
+
+	}
+
+	return modifiedArgs
+
+}
+
 // Call execute to use the args (os.Args[1:] by default)
 // and run through the command tree finding appropriate matches
 // for commands and then corresponding flags.
@@ -389,6 +455,9 @@ func (c *Command) Execute() (err error) {
 	// overriding
 	c.initHelp()
 
+	// solution is: convert args to have -flag val -> -flag=val
+	// that should be the last thing I have to take care of.
+
 	var args []string
 
 	if len(c.args) == 0 {
@@ -396,6 +465,9 @@ func (c *Command) Execute() (err error) {
 	} else {
 		args = c.args
 	}
+
+	//reformat the arguments here:
+	args = c.reformatArgs(args)
 
 	if len(args) == 0 {
 		// Only the executable is called and the root is runnable, run it
@@ -405,7 +477,12 @@ func (c *Command) Execute() (err error) {
 			c.Usage()
 		}
 	} else {
+		// fmt.Println("args to findAndExecute are : ", args)
 		err = c.findAndExecute(args)
+		if err != nil {
+
+			// fmt.Println("finished findAndExecute with error = ", err.Error())
+		}
 	}
 
 	// Now handle the case where the root is runnable and only flags are provided
@@ -417,6 +494,7 @@ func (c *Command) Execute() (err error) {
 			// Flags parsing had an error.
 			// If an error happens here, we have to report it to the user
 			c.Println(c.errorMsgFromParse())
+
 			c.Usage()
 			return e
 		} else {
@@ -570,12 +648,12 @@ func (c *Command) DebugFlags() {
 			x.flags.VisitAll(func(f *flag.Flag) {
 				if x.HasPersistentFlags() {
 					if x.persistentFlag(f.Name) == nil {
-						c.Println("  -"+f.Shorthand+",", "--"+f.Name, "["+f.DefValue+"]", "", f.Value, "  [L]")
+						c.Println("--"+f.Name, "["+f.DefValue+"]", "", f.Value, "  [L]")
 					} else {
-						c.Println("  -"+f.Shorthand+",", "--"+f.Name, "["+f.DefValue+"]", "", f.Value, "  [LP]")
+						c.Println("--"+f.Name, "["+f.DefValue+"]", "", f.Value, "  [LP]")
 					}
 				} else {
-					c.Println("  -"+f.Shorthand+",", "--"+f.Name, "["+f.DefValue+"]", "", f.Value, "  [L]")
+					c.Println("--"+f.Name, "["+f.DefValue+"]", "", f.Value, "  [L]")
 				}
 			})
 		}
@@ -583,10 +661,10 @@ func (c *Command) DebugFlags() {
 			x.pflags.VisitAll(func(f *flag.Flag) {
 				if x.HasFlags() {
 					if x.flags.Lookup(f.Name) == nil {
-						c.Println("  -"+f.Shorthand+",", "--"+f.Name, "["+f.DefValue+"]", "", f.Value, "  [P]")
+						c.Println("--"+f.Name, "["+f.DefValue+"]", "", f.Value, "  [P]")
 					}
 				} else {
-					c.Println("  -"+f.Shorthand+",", "--"+f.Name, "["+f.DefValue+"]", "", f.Value, "  [P]")
+					c.Println("--"+f.Name, "["+f.DefValue+"]", "", f.Value, "  [P]")
 				}
 			})
 		}
@@ -711,6 +789,50 @@ func (c *Command) ParseFlags(args []string) (err error) {
 
 	//always return nil because upstream library is inconsistent & we always check the error buffer anyway
 	return nil
+}
+
+func (c *Command) getAllCommands() []*Command {
+	baseSlice := c.Commands()
+
+	for _, cmd := range c.Commands() {
+		if cmd.HasSubCommands() {
+			nested := cmd.getAllCommands()
+			baseSlice = append(baseSlice, nested...)
+		}
+	}
+
+	return baseSlice
+}
+
+// call only on the root.
+func (c *Command) getAllBooleanFlags() (error, map[string]struct{}) {
+
+	if c.Root().Name() != c.Name() {
+		return errors.New("Error: getAllBooleanFlags not called on the Root command "), nil
+	}
+	booleanFlags := make(map[string]struct{}) // change 10 to something better later ? ( or let append handle the sizing?)
+
+	fn := func(f *flag.Flag) {
+		if f.Value.Type() == "bool" {
+			booleanFlags[f.Name] = struct{}{}
+			if len(f.Shorthand) >= 1 {
+
+				booleanFlags[f.Shorthand] = struct{}{}
+			}
+		}
+	}
+
+	for _, cmd := range c.getAllCommands() {
+		cmd.Flags().VisitAll(fn)
+
+	}
+
+	// adding persistent flags now:
+
+	c.PersistentFlags().VisitAll(fn)
+
+	return nil, booleanFlags // assuming that even if same
+
 }
 
 func (c *Command) mergePersistentFlags() {
