@@ -19,6 +19,7 @@ package cobra
 import (
 	"bytes"
 	"errors"
+	// "flag"
 	"fmt"
 	"io"
 	"os"
@@ -391,12 +392,29 @@ func (c *Command) reformatArgs(args []string) []string {
 	// if the value is not present, do nothing error will be caught later on.
 
 	_, booleanFlagMap := c.getAllBooleanFlags()
-
+	flagTerminator := false
 	argNumber := len(args)
 	modifiedArgs := make([]string, argNumber)
 	j := 0
 	for i := 0; i < argNumber; i++ {
+
+		if flagTerminator {
+			modifiedArgs[j] = args[i]
+			j += 1
+			continue
+		}
+
 		if strings.HasPrefix(args[i], "-") { // its a flag.
+
+			//edge case when it's a flag terminator
+			if args[i] == "--" {
+				// everything from this point on is copied as is:
+				flagTerminator = true
+				modifiedArgs[j] = args[i]
+				j += 1
+				continue
+			}
+
 			if !strings.Contains(args[i], "=") { // without an equal to sign in it.
 				num_minuses := 1
 				if len(args[i]) > 1 && args[i][1] == '-' {
@@ -447,18 +465,16 @@ func (c *Command) Execute() (err error) {
 	// solution is: convert args to have -flag val -> -flag=val
 	// that should be the last thing I have to take care of.
 
-	var args_old []string
+	var args []string
 
 	if len(c.args) == 0 {
-		args_old = os.Args[1:]
+		args = os.Args[1:]
 	} else {
-		args_old = c.args
+		args = c.args
 	}
 
 	//reformat the arguments here:
-	// fmt.Println("before reformat", args_old)
-	args := c.reformatArgs(args_old)
-	// fmt.Println("after reformat", args)
+	args = c.reformatArgs(args)
 
 	if len(args) == 0 {
 		// Only the executable is called and the root is runnable, run it
