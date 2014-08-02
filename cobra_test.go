@@ -244,8 +244,8 @@ func TestChildSameNamePrefix(t *testing.T) {
 }
 
 func TestFlagLong(t *testing.T) {
-	str := noRRSetupTest("echo --intone=13 something here")
-	fmt.Println(str.Output)
+	noRRSetupTest("echo --intone=13 something here")
+
 	if strings.Join(te, " ") != "something here" {
 		t.Errorf("flags didn't leave proper args remaining..%s given", te)
 	}
